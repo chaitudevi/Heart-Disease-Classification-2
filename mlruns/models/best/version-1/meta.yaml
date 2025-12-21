@@ -1,0 +1,14 @@
+aliases: []
+creation_timestamp: 1766327016515
+current_stage: None
+description: ''
+last_updated_timestamp: 1766327016515
+name: best
+run_id: 9b3817aacd9b49c2888a86622007e121
+run_link: ''
+source: file:///E:/M.Tech/SEM%203/MLOPS/Assignment%20-%201/heart-disease-mlops/heart-disease-mlops/mlruns/690145927464560865/9b3817aacd9b49c2888a86622007e121/artifacts/model
+status: READY
+status_message: null
+storage_location: file:///E:/M.Tech/SEM%203/MLOPS/Assignment%20-%201/heart-disease-mlops/heart-disease-mlops/mlruns/690145927464560865/9b3817aacd9b49c2888a86622007e121/artifacts/model
+user_id: null
+version: 1

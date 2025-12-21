@@ -1,0 +1,15 @@
+artifact_uri: file:///E:/M.Tech/SEM%203/MLOPS/Assignment/heart-disease-mlops/mlruns/919449041538733118/cffcce7a08f64c94be03c3f28bcb1217/artifacts
+end_time: 1766337645190
+entry_point_name: ''
+experiment_id: '919449041538733118'
+lifecycle_stage: active
+run_id: cffcce7a08f64c94be03c3f28bcb1217
+run_name: wistful-pug-354
+run_uuid: cffcce7a08f64c94be03c3f28bcb1217
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1766337644871
+status: 3
+tags: []
+user_id: chait
