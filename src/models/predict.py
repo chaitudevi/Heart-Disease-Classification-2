@@ -46,7 +46,7 @@ def predict(input_json: dict):
         categorical_cols=categorical_cols
     )
 
-    # ✅ ALIGN FEATURES (KEY FIX)
+    # ALIGN FEATURES (KEY FIX)
     X_features = X_features.reindex(
         columns=expected_features,
         fill_value=0

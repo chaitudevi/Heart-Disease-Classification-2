@@ -1,0 +1,15 @@
+artifact_uri: file:///E:/M.Tech/SEM%203/MLOPS/Assignment/heart-disease-mlops/mlruns/919449041538733118/4e654513285245baa8fc21c97b1c419a/artifacts
+end_time: 1766466507063
+entry_point_name: ''
+experiment_id: '919449041538733118'
+lifecycle_stage: active
+run_id: 4e654513285245baa8fc21c97b1c419a
+run_name: Random Forest
+run_uuid: 4e654513285245baa8fc21c97b1c419a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1766466506561
+status: 3
+tags: []
+user_id: pe3rs0n12
