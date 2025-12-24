@@ -57,7 +57,7 @@ jobs:
         run: pip install -r requirements.txt pytest pytest-html
 
       - name: Run unit tests 
-        run: pytest --html=reports/pytest_report.html --self-contained-html
+        run: PYTHONPATH=src pytest --html=reports/pytest_report.html --self-contained-html
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
