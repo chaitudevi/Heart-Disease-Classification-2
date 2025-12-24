@@ -18,6 +18,10 @@ uvicorn==0.30.0
 
 # Testing
 pytest==8.2.1
+pytest-html==4.1.1
 
 # Utilities
 python-dotenv==1.0.1
+
+# Linting
+flake8==7.1.0
