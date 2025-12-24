@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 RAW_DATA_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 OUTPUT_FILE = "heart_disease.csv"
 
-DATA_URL = ( "https://archive.ics.uci.edu/ml/machine-learning-databases/" "heart-disease/processed.cleveland.data" ) 
+DATA_URL = ( "https://archive.ics.uci.edu/ml/machine-learning-databases/" "heart-disease/processed.cleveland.data") 
 
 COLUMN_NAMES = [
     "age",
