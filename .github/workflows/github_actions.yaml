@@ -54,7 +54,10 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest pytest-html
+        run: pip install -r requirements.txt
+
+      - name: Install package (editable mode) 
+        run: pip install -e .
 
       - name: Run unit tests 
         run: PYTHONPATH=src pytest --html=reports/pytest_report.html --self-contained-html
