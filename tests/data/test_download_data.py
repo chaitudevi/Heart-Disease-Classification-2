@@ -1,13 +1,15 @@
 import os
+import tempfile
+
 import pandas as pd
 import pytest
-import tempfile
 
 from src.data import download_data
 
+
 def test_download_dataset(monkeypatch):
-    """ Fakes download of the dataset and 
-    checks if the output file has the right structure """
+    """Fakes download of the dataset and
+    checks if the output file has the right structure"""
 
     tmpdir = tempfile.mkdtemp()
     fake_file = os.path.join(tmpdir, "heart_disease.csv")

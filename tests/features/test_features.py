@@ -1,27 +1,27 @@
-import pandas as pd
 import numpy as np
-
-from sklearn.pipeline import Pipeline
+import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 
-from src.features.feature_pipeline import (
-    create_features,
-    get_numeric_pipeline,
-    get_categorical_pipeline,
-    build_feature_transformer,
-    feature_engineering_pipeline
-)
+from src.features.feature_pipeline import (build_feature_transformer,
+                                           create_features,
+                                           feature_engineering_pipeline,
+                                           get_categorical_pipeline,
+                                           get_numeric_pipeline)
+
 
 def test_create_features_adds_expected_columns():
     """
     Tests the create_features function for generating correct features
     """
-    df = pd.DataFrame({
-        "age":[60,55],
-        "thalach":[150,160],
-        "chol":[240,250],
-        "trestbps":[120,130]
-    })
+    df = pd.DataFrame(
+        {
+            "age": [60, 55],
+            "thalach": [150, 160],
+            "chol": [240, 250],
+            "trestbps": [120, 130],
+        }
+    )
     engineered = create_features(df)
 
     # Check columns exist
@@ -29,8 +29,9 @@ def test_create_features_adds_expected_columns():
     assert "chol_bp_product" in engineered.columns
 
     # Check values are computed correctly
-    assert engineered.loc[0,"age_thalach_ratio"] == 60/(150+1)
-    assert engineered.loc[1,"chol_bp_product"] == 250*130
+    assert engineered.loc[0, "age_thalach_ratio"] == 60 / (150 + 1)
+    assert engineered.loc[1, "chol_bp_product"] == 250 * 130
+
 
 def test_get_numeric_pipeline_returns_pipeline():
     """
@@ -42,6 +43,7 @@ def test_get_numeric_pipeline_returns_pipeline():
     assert "imputer" in steps
     assert "scaler" in steps
 
+
 def test_get_categorical_pipeline_returns_pipeline():
     """
     Test that get_categorical_pipeline returns a valid scikit-learn Pipeline
@@ -52,11 +54,12 @@ def test_get_categorical_pipeline_returns_pipeline():
     assert "imputer" in steps
     assert any(step == "encoder" for step in steps)
 
+
 def test_build_feature_transformer_structure():
     """
     Test that build_feature_transformer constructs a ColumnTransformer correctly
     """
-    numeric_cols = ["age","chol"]
+    numeric_cols = ["age", "chol"]
     categorical_cols = ["sex"]
     transformer = build_feature_transformer(numeric_cols, categorical_cols)
     assert isinstance(transformer, ColumnTransformer)
@@ -64,21 +67,24 @@ def test_build_feature_transformer_structure():
     assert "num" in transformer_names
     assert "cat" in transformer_names
 
+
 def test_feature_engineering_pipeline_runs_end_to_end():
     """
     Integration test for the full feature_engineering_pipeline.
     """
-    df = pd.DataFrame({
-        "age":[60,55],
-        "sex":[1,0],
-        "cp":[3,2],
-        "trestbps":[120,130],
-        "chol":[240,250],
-        "thalach":[150,160],
-        "target":[1,0]
-    })
-    numeric_cols = ["age","trestbps","chol","thalach"]
-    categorical_cols = ["sex","cp"]
+    df = pd.DataFrame(
+        {
+            "age": [60, 55],
+            "sex": [1, 0],
+            "cp": [3, 2],
+            "trestbps": [120, 130],
+            "chol": [240, 250],
+            "thalach": [150, 160],
+            "target": [1, 0],
+        }
+    )
+    numeric_cols = ["age", "trestbps", "chol", "thalach"]
+    categorical_cols = ["sex", "cp"]
 
     processed = feature_engineering_pipeline(df, numeric_cols, categorical_cols)
 

@@ -1,8 +1,9 @@
 import pytest
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
 from src.models.model import build_logestic_model, build_rf_model
+
 
 def test_build_logestic_model_returns_logistic_regression():
     """
@@ -14,6 +15,7 @@ def test_build_logestic_model_returns_logistic_regression():
     assert model.max_iter == 1000
     assert model.solver == "liblinear"
     assert model.random_state == 42
+
 
 def test_build_rf_model_returns_random_forest():
     """

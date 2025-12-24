@@ -1,10 +1,8 @@
 import pandas as pd
-import numpy as np
-
-from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from src.utils.logger import get_logger
 
@@ -28,6 +26,7 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 def get_numeric_pipeline() -> Pipeline:
     """
     Numeric feature processing pipeline.
@@ -37,10 +36,9 @@ def get_numeric_pipeline() -> Pipeline:
     return Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler())
+            ("scaler", StandardScaler()),
         ]
     )
-
 
 
 def get_categorical_pipeline() -> Pipeline:
@@ -52,17 +50,13 @@ def get_categorical_pipeline() -> Pipeline:
     return Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("encoder", 
-             pd.get_dummies  # used via wrapper below
-            )
+            ("encoder", pd.get_dummies),  # used via wrapper below
         ]
     )
 
 
-
 def build_feature_transformer(
-    numeric_cols: list,
-    categorical_cols: list
+    numeric_cols: list, categorical_cols: list
 ) -> ColumnTransformer:
     """
     Column-wise feature engineering transformer.
@@ -72,16 +66,14 @@ def build_feature_transformer(
     return ColumnTransformer(
         transformers=[
             ("num", get_numeric_pipeline(), numeric_cols),
-            ("cat", SimpleImputer(strategy="most_frequent"), categorical_cols)
+            ("cat", SimpleImputer(strategy="most_frequent"), categorical_cols),
         ],
-        remainder="drop"
+        remainder="drop",
     )
 
 
 def feature_engineering_pipeline(
-    df: pd.DataFrame,
-    numeric_cols: list,
-    categorical_cols: list
+    df: pd.DataFrame, numeric_cols: list, categorical_cols: list
 ) -> pd.DataFrame:
     """
     Full feature engineering pipeline.
@@ -93,8 +85,7 @@ def feature_engineering_pipeline(
 
     # Step 2: Column-wise transformations
     transformer = build_feature_transformer(
-        numeric_cols=numeric_cols,
-        categorical_cols=categorical_cols
+        numeric_cols=numeric_cols, categorical_cols=categorical_cols
     )
 
     transformed_array = transformer.fit_transform(df)
@@ -105,16 +96,11 @@ def feature_engineering_pipeline(
 
     feature_names = num_features + cat_features
 
-    df_transformed = pd.DataFrame(
-        transformed_array,
-        columns=feature_names
-    )
+    df_transformed = pd.DataFrame(transformed_array, columns=feature_names)
 
     # Step 4: One-hot encode categoricals
     df_transformed = pd.get_dummies(
-        df_transformed,
-        columns=categorical_cols,
-        drop_first=True
+        df_transformed, columns=categorical_cols, drop_first=True
     )
 
     logger.info("Feature engineering completed successfully")

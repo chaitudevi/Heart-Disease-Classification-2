@@ -1,7 +1,9 @@
 import logging
+
 import pytest
 
 from src.utils.logger import get_logger
+
 
 def test_get_logger_returns_logger_instance():
     """
@@ -9,6 +11,7 @@ def test_get_logger_returns_logger_instance():
     """
     logger = get_logger("test_logger")
     assert isinstance(logger, logging.Logger)
+
 
 def test_get_logger_adds_handler_once():
     """
@@ -23,6 +26,7 @@ def test_get_logger_adds_handler_once():
     assert handlers_before == handlers_after
     assert logger is logger2
 
+
 def test_logger_formatter_and_level():
     """
     Ensure logger has INFO level and the correct formatter string.
@@ -33,6 +37,7 @@ def test_logger_formatter_and_level():
     handler = logger.handlers[0]
     formatter = handler.formatter
     assert formatter._fmt == "[%(asctime)s] %(levelname)s | %(name)s | %(message)s"
+
 
 def test_logger_emits_message(caplog):
     """
