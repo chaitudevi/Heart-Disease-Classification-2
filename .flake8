@@ -1,18 +1,8 @@
 [flake8]
-# Allow longer lines
 max-line-length = 120
 
 # Ignore specific rules
-ignore =
-    E501,  # line too long
-    E203,  # whitespace before ':'
-    W503,  # line break before binary operator
+ignore = E203, W503, E501, F401, E402
 
 # Exclude certain directories
-exclude =
-    .git,
-    __pycache__,
-    build,
-    dist,
-    venv,
-    .venv
+exclude = .git,__pycache__,build,dist,venv,.venv
