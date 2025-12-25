@@ -94,7 +94,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install package (editable mode)
-      run: pip install -e .
+        run: pip install -e .
 
       - name: Run model training
         run: python src/models/train.py
