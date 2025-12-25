@@ -90,13 +90,8 @@ best_model = models[best_model_name]
 best_model.fit(X_features, y)
 
 artifact = {"model": best_model, "feature_names": X_features.columns.tolist()}
-
+os.makedirs("artifacts", exist_ok=True)
 joblib.dump(artifact, "artifacts/model.pkl")
-
-# Log final model to MLflow
-with mlflow.start_run(run_name="Best_Model"):
-    mlflow.log_param("selected_model", best_model_name)
-    mlflow.sklearn.log_model(best_model, artifact_path="model")
 
 print(f"Best model selected: {best_model_name}")
 
@@ -111,4 +106,8 @@ plt.title("ROC Curve")
 plt.legend()
 
 plt.savefig("roc_curve.png")
-mlflow.log_artifact("roc_curve.png")
+# Log final model to MLflow
+with mlflow.start_run(run_name="Best_Model"):
+    mlflow.log_param("selected_model", best_model_name)
+    mlflow.sklearn.log_model(best_model, artifact_path="model")
+    mlflow.log_artifact("roc_curve.png")
