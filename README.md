@@ -154,7 +154,7 @@ pytest
 
 **Run Tests with HTML Report**
 ```bash
-pytest --html=reports/pytest_report.html --self-contained-html 
+pytest --html=reports/pytest_report.html --self-contained-html
 ```
 
 **Run Specific Test Modules**
@@ -207,4 +207,29 @@ Viewing CI Results
 Navigate to the Actions tab in the GitHub repository
 Select a workflow run to view details
 Download artifacts (test reports, trained models) from the workflow summary
+
+## Containerization
+1. Ensure a trained model exists at `artifacts/model.pkl` (run `python src/models/train.py`).
+2. Build the image: `docker build -t heart-disease-api:latest .`
+3. Run locally: `docker run --rm -p 8000:8000 -v $(pwd)/artifacts:/app/artifacts heart-disease-api:latest`
+4. Test prediction: `curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" --data @sample_data/sample_request.json`
+
+## Kubernetes Deployment
+- Push the image to a registry and update `image` in `k8s/deployment.yaml`.
+- Deploy: `kubectl apply -f k8s/deployment.yaml`.
+- Access: `kubectl get svc heart-disease-api` or `minikube service heart-disease-api --url`.
+
+## Helm Chart
+- Package is under `charts/heart-disease-api`.
+- Install: `helm install heart-api charts/heart-disease-api --set image.repository=<repo> --set image.tag=<tag>`.
+- Override service type/ports: `--set service.type=NodePort --set service.port=8000`.
+- Uninstall: `helm uninstall heart-api`.
+
+## Monitoring & Observability
+- Request logging enabled via middleware in the FastAPI app.
+- Prometheus metrics exposed at `/metrics` (request count, latency, prediction confidence histogram).
+- The service manifest includes scrape annotations for Prometheus; add the service to your Prometheus scrape config.
+
+## Sample Prediction Payload
+See `sample_data/sample_request.json` for a ready-to-use request body.
 
