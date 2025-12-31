@@ -36,7 +36,7 @@ if tracking_uri.startswith("file:"):
 
 mlflow.set_tracking_uri(tracking_uri)
 mlflow.set_experiment(
-    "Heart-Disease-Classification-2", artifact_location=tracking_uri
+    "Heart-Disease-Classification-2"
 )
 
 # Load data (generate if missing)
@@ -166,10 +166,10 @@ plt.ylabel("True Positive Rate")
 plt.title("ROC Curve")
 plt.legend()
 
-plt.savefig("roc_curve.png")
+plt.savefig("reports/figures/roc_curve.png")
 # Log final model to MLflow
 with mlflow.start_run(run_name="Best_Model"):
     mlflow.log_param("selected_model", best_model_name)
     mlflow.sklearn.log_model(best_pipeline, artifact_path="model")
-    mlflow.log_artifact("roc_curve.png")
+    mlflow.log_artifact("reports/figures/roc_curve.png")
     mlflow.log_artifact("artifacts/model.pkl")
