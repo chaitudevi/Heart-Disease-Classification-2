@@ -42,6 +42,6 @@ def predict(input_json: dict):
 
     confidence = None
     if hasattr(model, "predict_proba"):
-        confidence = float(model.predict_proba(df).max())
+        confidence = float(np.array(model.predict_proba(df)).max())
 
     return {"prediction": int(prediction[0]), "confidence": confidence}
