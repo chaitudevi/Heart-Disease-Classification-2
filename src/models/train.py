@@ -13,7 +13,8 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import (accuracy_score, auc, precision_score,
                              recall_score, roc_auc_score, roc_curve)
-from sklearn.model_selection import StratifiedKFold, cross_validate
+from sklearn.metrics import ConfusionMatrixDisplay, classification_report, confusion_matrix
+from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
 
 import yaml
@@ -74,6 +75,14 @@ df[TARGET] = (df[TARGET] > 0).astype(int)
 
 y = df[TARGET]
 
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    stratify=y,
+    random_state=42,
+)
+
 models = {
     "Logistic Regression": build_logestic_model(),
     "Random Forest": build_rf_model(),
@@ -113,7 +122,13 @@ for name, model in models.items():
             ]
         )
 
-        cv_results = cross_validate(model_pipeline, X, y, cv=cv, scoring=scoring)
+        cv_results = cross_validate(
+            model_pipeline,
+            X_train,
+            y_train,
+            cv=cv,
+            scoring=scoring,
+        )
 
         # Log metrics
         for metric in scoring:
@@ -145,7 +160,11 @@ best_pipeline = Pipeline(
         ("model", best_model),
     ]
 )
-best_pipeline.fit(X, y)
+best_pipeline.fit(X_train, y_train)
+
+reports_dir = os.path.join(PROJECT_ROOT, "reports")
+figures_dir = os.path.join(reports_dir, "figures")
+os.makedirs(figures_dir, exist_ok=True)
 
 artifact = {
     "model": best_pipeline,
@@ -156,20 +175,60 @@ joblib.dump(artifact, "artifacts/model.pkl")
 
 print(f"Best model selected: {best_model_name}")
 
-y_proba = best_pipeline.predict_proba(X)[:, 1]
-fpr, tpr, _ = roc_curve(y, y_proba)
+y_pred_test = best_pipeline.predict(X_test)
+y_proba_test = best_pipeline.predict_proba(X_test)[:, 1]
+
+test_accuracy = accuracy_score(y_test, y_pred_test)
+test_precision = precision_score(y_test, y_pred_test)
+test_recall = recall_score(y_test, y_pred_test)
+test_roc_auc = roc_auc_score(y_test, y_proba_test)
+
+fpr, tpr, _ = roc_curve(y_test, y_proba_test)
+roc_curve_path = os.path.join(figures_dir, "roc_curve.png")
 
 plt.figure()
-plt.plot(fpr, tpr, label="ROC Curve")
+plt.plot(fpr, tpr, label=f"ROC AUC = {test_roc_auc:.3f}")
+plt.plot([0, 1], [0, 1], linestyle="--", color="gray")
 plt.xlabel("False Positive Rate")
 plt.ylabel("True Positive Rate")
-plt.title("ROC Curve")
+plt.title("ROC Curve (Holdout Test)")
 plt.legend()
+plt.tight_layout()
+plt.savefig(roc_curve_path)
 
-plt.savefig("reports/figures/roc_curve.png")
+cm = confusion_matrix(y_test, y_pred_test)
+cm_path = os.path.join(figures_dir, "confusion_matrix.png")
+plt.figure()
+ConfusionMatrixDisplay(confusion_matrix=cm).plot(cmap="Blues", values_format="d")
+plt.title("Confusion Matrix (Holdout Test)")
+plt.tight_layout()
+plt.savefig(cm_path)
+
+classification_report_path = os.path.join(reports_dir, "classification_report.txt")
+with open(classification_report_path, "w") as f:
+    f.write("Model: ")
+    f.write(best_model_name)
+    f.write("\n\n")
+    f.write(classification_report(y_test, y_pred_test, digits=4))
+
+metrics_summary_path = os.path.join(reports_dir, "performance_summary.txt")
+with open(metrics_summary_path, "w") as f:
+    f.write(f"selected_model={best_model_name}\n")
+    f.write(f"test_accuracy={test_accuracy:.6f}\n")
+    f.write(f"test_precision={test_precision:.6f}\n")
+    f.write(f"test_recall={test_recall:.6f}\n")
+    f.write(f"test_roc_auc={test_roc_auc:.6f}\n")
+
 # Log final model to MLflow
 with mlflow.start_run(run_name="Best_Model"):
     mlflow.log_param("selected_model", best_model_name)
+    mlflow.log_metric("test_accuracy", float(test_accuracy))
+    mlflow.log_metric("test_precision", float(test_precision))
+    mlflow.log_metric("test_recall", float(test_recall))
+    mlflow.log_metric("test_roc_auc", float(test_roc_auc))
     mlflow.sklearn.log_model(best_pipeline, artifact_path="model")
-    mlflow.log_artifact("reports/figures/roc_curve.png")
+    mlflow.log_artifact(roc_curve_path)
+    mlflow.log_artifact(cm_path)
+    mlflow.log_artifact(classification_report_path)
+    mlflow.log_artifact(metrics_summary_path)
     mlflow.log_artifact("artifacts/model.pkl")

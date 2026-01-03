@@ -1,0 +1,5 @@
+selected_model=Logistic Regression
+test_accuracy=0.868852
+test_precision=0.812500
+test_recall=0.928571
+test_roc_auc=0.957792
