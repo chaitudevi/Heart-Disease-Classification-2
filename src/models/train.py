@@ -26,19 +26,45 @@ from src.data.load_data import load_raw_data
 from src.data.preprocess import preprocess_pipeline
 
 # Ensure MLflow artifacts land in a repo-local, writable path by default.
-default_tracking_dir = os.environ.get(
-    "MLFLOW_TRACKING_DIR", os.path.join(PROJECT_ROOT, "mlruns")
-)
-tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", f"file://{default_tracking_dir}")
+# default_tracking_dir = os.environ.get(
+#     "MLFLOW_TRACKING_DIR", os.path.join(PROJECT_ROOT, "mlruns")
+# )
+# tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", f"file://{default_tracking_dir}")
 
-if tracking_uri.startswith("file:"):
-    tracking_path = tracking_uri.replace("file://", "", 1)
-    os.makedirs(tracking_path, exist_ok=True)
+# if tracking_uri.startswith("file:"):
+#     tracking_path = tracking_uri.replace("file://", "", 1)
+#     os.makedirs(tracking_path, exist_ok=True)
 
+# mlflow.set_tracking_uri(tracking_uri)
+# mlflow.set_experiment(
+#     "Heart-Disease-Classification-2"
+# )
+
+# MLRUNS_DIR = Path(PROJECT_ROOT) / "mlruns"
+# MLRUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+# tracking_uri = MLRUNS_DIR.as_uri()  # <-- CRITICAL FIX
+# mlflow.set_tracking_uri(tracking_uri)
+
+from pathlib import Path
+
+# ----- MLflow tracking (Windows-safe) -----
+MLRUNS_DIR = Path(PROJECT_ROOT) / "mlruns"
+MLRUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+tracking_uri = MLRUNS_DIR.as_uri()  # <-- CRITICAL FIX
 mlflow.set_tracking_uri(tracking_uri)
-mlflow.set_experiment(
-    "Heart-Disease-Classification-2"
-)
+
+EXPERIMENT_NAME = "Heart-Disease-Classification-Local"
+
+experiment = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
+if experiment is None:
+    mlflow.create_experiment(
+        name=EXPERIMENT_NAME,
+        artifact_location=tracking_uri
+    )
+
+mlflow.set_experiment(EXPERIMENT_NAME)
 
 # Load data (generate if missing)
 processed_csv = os.path.join(PROJECT_ROOT, "data", "processed", "heart_disease_clean.csv")
