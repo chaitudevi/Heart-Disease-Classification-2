@@ -3,8 +3,9 @@
 ## 1. Objective
 Build a machine learning classifier for heart disease prediction and deploy it as a cloud-ready, monitored API using modern MLOps best practices.
 
-## 2. Repository Link
-- **GitHub**: [github.com/chaitudevi/Heart-Disease-Classification-2](https://github.com/chaitudevi/Heart-Disease-Classification-2)
+## 2. Demo Video & Repository Link
+- **Demo Video**: [Pipeline Demo on YouTube](https://youtu.be/3KCOzVRhIBc) - Complete end-to-end pipeline demonstration
+- **GitHub Repository**: [github.com/chaitudevi/Heart-Disease-Classification-2](https://github.com/chaitudevi/Heart-Disease-Classification-2)
 
 ## 3. Dataset (Heart Disease UCI)
 - **Source**: UCI Machine Learning Repository

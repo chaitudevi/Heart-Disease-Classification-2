@@ -4,6 +4,7 @@ This repository contains an end-to-end MLOps pipeline to predict heart disease r
 
 ## Table of Contents
 * [Overview](#overview)
+* [Demo Video](#demo-video)
 * [Dataset](#dataset)
 * [Project Structure](#project-structure)
 * [Installation](#installation)
@@ -19,6 +20,16 @@ This project builds a machine learning classifier to predict the risk of heart h
 * Experiment tracking : MLflow integration of parameter and metric tracking.
 * Automated testing : PyTest based testcases
 * CI / CD : GitHub Actions pipeline to perform linting, testing and training
+
+## Demo Video
+
+Watch the **end-to-end pipeline demonstration** on YouTube:
+
+[![Pipeline Demo](https://img.youtube.com/vi/3KCOzVRhIBc/maxresdefault.jpg)](https://youtu.be/3KCOzVRhIBc)
+
+**[Full Video Link: https://youtu.be/3KCOzVRhIBc](https://youtu.be/3KCOzVRhIBc)**
+
+This video covers the complete workflow from data acquisition through production deployment and inference.
 
 ## Dataset
 Title : Heart disease UCI dataset
@@ -123,7 +134,8 @@ Heart-Disease-Classification-2/
 
 **Run the Data Pipeline**
 ```bash
-python scripts/run_data_pipeline.py
+python -m src.data.download_data
+python -m src.data.load_data
 ```
 
 This will:
@@ -134,7 +146,7 @@ This will:
 
 **Train the Model**
 ```bash
-python src/models/train.py
+python -m src.models.train
 ```
 
 This will:
@@ -142,6 +154,17 @@ This will:
 * Train Logistic Regression and Random Forest models
 * Log experiments to MLflow
 * Save model artifacts to `artifacts/`
+
+**Run the API Locally**
+```bash
+uvicorn src.api.app:app --host 0.0.0.0 --port 8000
+```
+
+**Test the API**
+```bash
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
+  -d @sample_data/sample_request.json
+```
 
 ## Testing
 
@@ -209,9 +232,9 @@ Select a workflow run to view details
 Download artifacts (test reports, trained models) from the workflow summary
 
 ## Containerization
-1. Ensure a trained model exists at `artifacts/model.pkl` (run `python src/models/train.py`).
+1. Ensure a trained model exists at `artifacts/model.pkl` (run `python -m src.models.train`).
 2. Build the image: `docker build -t heart-disease-api:latest .`
-3. Run locally: `docker run --rm -p 8000:8000 -v $(pwd)/artifacts:/app/artifacts heart-disease-api:latest`
+3. Run locally: `docker run --rm -p 8000:8000 heart-disease-api:latest`
 4. Test prediction: `curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" --data @sample_data/sample_request.json`
 
 ## Kubernetes Deployment
