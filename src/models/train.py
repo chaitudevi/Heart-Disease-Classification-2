@@ -1,5 +1,10 @@
 import os
 import sys
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import joblib
 import matplotlib.pyplot as plt
 import mlflow
@@ -8,21 +13,76 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import (accuracy_score, auc, precision_score,
                              recall_score, roc_auc_score, roc_curve)
-from sklearn.model_selection import StratifiedKFold, cross_validate
+from sklearn.metrics import ConfusionMatrixDisplay, classification_report, confusion_matrix
+from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
+from sklearn.pipeline import Pipeline
 
-from src.features.feature_pipeline import feature_engineering_pipeline
+import yaml
+from src.features.feature_pipeline import build_feature_pipeline
 from src.models.model import build_logestic_model, build_rf_model
+from src.data.download_data import download_dataset
+from src.data.load_data import load_raw_data
+from src.data.preprocess import preprocess_pipeline
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.insert(0, PROJECT_ROOT)
 
-mlflow.set_experiment("Heart-Disease-Classification-2")
+# function to log model hyperparameters
+def log_model_params(model, model_name):
+    """
+    Logs key hyperparameters for each model
+    """
+    if model_name == "Logistic Regression":
+        mlflow.log_param("C", model.C)
+        mlflow.log_param("penalty", model.penalty)
+        mlflow.log_param("solver", model.solver)
+        mlflow.log_param("max_iter", model.max_iter)
+    elif model_name == "Random Forest":
+        mlflow.log_param("n_estimators", model.n_estimators)
+        mlflow.log_param("max_depth", model.max_depth)
+        mlflow.log_param("min_samples_split", model.min_samples_split)
+        mlflow.log_param("min_samples_leaf", model.min_samples_leaf)
 
-# Load data
-df = pd.read_csv("data/processed/heart_disease_clean.csv")
+
+# Ensure MLflow artifacts land in a repo-local, writable path by default.
+default_tracking_dir = os.environ.get(
+    "MLFLOW_TRACKING_DIR", os.path.join(PROJECT_ROOT, "mlruns")
+)
+tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", f"file://{default_tracking_dir}")
+
+if tracking_uri.startswith("file:"):
+    tracking_path = tracking_uri.replace("file://", "", 1)
+    os.makedirs(tracking_path, exist_ok=True)
+
+mlflow.set_tracking_uri(tracking_uri)
+mlflow.set_experiment(
+    "Heart-Disease-Classification-2"
+)
+
+# Load data (generate if missing)
+processed_csv = os.path.join(PROJECT_ROOT, "data", "processed", "heart_disease_clean.csv")
+if not os.path.exists(processed_csv):
+    with open(os.path.join(PROJECT_ROOT, "configs", "data_config.yaml")) as f:
+        config = yaml.safe_load(f)
+
+    raw_path = os.path.join(PROJECT_ROOT, config["data"]["raw_path"])
+    processed_path = os.path.join(PROJECT_ROOT, config["data"]["processed_path"])
+    os.makedirs(os.path.dirname(processed_path), exist_ok=True)
+    os.makedirs(os.path.dirname(raw_path), exist_ok=True)
+
+    if not os.path.exists(raw_path):
+        download_dataset()
+
+    df_raw = load_raw_data(raw_path)
+    df_clean = preprocess_pipeline(
+        df_raw,
+        config["preprocessing"]["categorical_features"],
+        config["preprocessing"]["numerical_features"],
+    )
+    df_clean.to_csv(processed_path, index=False)
+
+df = pd.read_csv(processed_csv)
 
 TARGET = "target"
-numeric_cols = ["age", "trestbps", "chol", "thalach", "oldpeak"]
+numeric_cols = ["age", "trestbps", "chol", "thalach", "oldpeak", "ca"]
 
 categorical_cols = ["sex", "cp", "fbs", "restecg", "exang", "slope", "thal"]
 
@@ -32,9 +92,12 @@ df[TARGET] = (df[TARGET] > 0).astype(int)
 
 y = df[TARGET]
 
-#  CALL FEATURE ENGINEERING HERE
-X_features = feature_engineering_pipeline(
-    df=X, numeric_cols=numeric_cols, categorical_cols=categorical_cols
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    stratify=y,
+    random_state=42,
 )
 
 models = {
@@ -61,20 +124,48 @@ results = {}
 
 for name, model in models.items():
     with mlflow.start_run(run_name=name):
-
-        # Log model type
+        # Parameters
         mlflow.log_param("model_type", name)
+        mlflow.log_param("cv_folds", cv.n_splits)
+        log_model_params(model, name)
 
-        cv_results = cross_validate(model, X_features, y, cv=cv, scoring=scoring)
+        feature_pipeline = build_feature_pipeline(
+            numeric_cols=numeric_cols,
+            categorical_cols=categorical_cols,
+        )
+        model_pipeline = Pipeline(
+            steps=[
+                ("features", feature_pipeline),
+                ("model", model),
+            ]
+        )
 
-        # Log metrics
+        # Cross Validation
+        cv_results = cross_validate(
+            model_pipeline,
+            X_train,
+            y_train,
+            cv=cv,
+            scoring=scoring,
+            return_train_score=False
+        )
+
+        # Metrics
         for metric in scoring:
             mean_value = np.mean(cv_results[f"test_{metric}"])
-            mlflow.log_metric(metric, mean_value)
+            mlflow.log_metric(f"cv_{metric}", mean_value)
 
         results[name] = {
             metric: np.mean(cv_results[f"test_{metric}"]) for metric in scoring
         }
+
+        # Save CV Results as Artifact
+        cv_df = pd.DataFrame(cv_results)
+        reports_dir = os.path.join(PROJECT_ROOT, "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        cv_results_path = os.path.join(reports_dir, f"{name}_cv_results.csv")
+        cv_df.to_csv(cv_results_path, index=False)
+        mlflow.log_artifact(cv_results_path)
 
 # Print Results (Report-Ready)
 for model_name, metrics in results.items():
@@ -87,27 +178,85 @@ for model_name, metrics in results.items():
 best_model_name = max(results, key=lambda m: results[m]["roc_auc"])
 best_model = models[best_model_name]
 
-best_model.fit(X_features, y)
+best_feature_pipeline = build_feature_pipeline(
+    numeric_cols=numeric_cols,
+    categorical_cols=categorical_cols,
+)
+best_pipeline = Pipeline(
+    steps=[
+        ("features", best_feature_pipeline),
+        ("model", best_model),
+    ]
+)
+best_pipeline.fit(X_train, y_train)
 
-artifact = {"model": best_model, "feature_names": X_features.columns.tolist()}
+reports_dir = os.path.join(PROJECT_ROOT, "reports")
+figures_dir = os.path.join(reports_dir, "figures")
+os.makedirs(figures_dir, exist_ok=True)
+
+artifact = {
+    "model": best_pipeline,
+    "raw_feature_names": X.columns.tolist(),
+}
 os.makedirs("artifacts", exist_ok=True)
 joblib.dump(artifact, "artifacts/model.pkl")
 
 print(f"Best model selected: {best_model_name}")
 
-y_proba = best_model.predict_proba(X_features)[:, 1]
-fpr, tpr, _ = roc_curve(y, y_proba)
+y_pred_test = best_pipeline.predict(X_test)
+y_proba_test = best_pipeline.predict_proba(X_test)[:, 1]
+
+test_accuracy = accuracy_score(y_test, y_pred_test)
+test_precision = precision_score(y_test, y_pred_test)
+test_recall = recall_score(y_test, y_pred_test)
+test_roc_auc = roc_auc_score(y_test, y_proba_test)
+
+fpr, tpr, _ = roc_curve(y_test, y_proba_test)
+roc_curve_path = os.path.join(figures_dir, "roc_curve.png")
 
 plt.figure()
-plt.plot(fpr, tpr, label="ROC Curve")
+plt.plot(fpr, tpr, label=f"ROC AUC = {test_roc_auc:.3f}")
+plt.plot([0, 1], [0, 1], linestyle="--", color="gray")
 plt.xlabel("False Positive Rate")
 plt.ylabel("True Positive Rate")
-plt.title("ROC Curve")
+plt.title("ROC Curve (Holdout Test)")
 plt.legend()
+plt.tight_layout()
+plt.savefig(roc_curve_path)
 
-plt.savefig("roc_curve.png")
+cm = confusion_matrix(y_test, y_pred_test)
+cm_path = os.path.join(figures_dir, "confusion_matrix.png")
+plt.figure()
+ConfusionMatrixDisplay(confusion_matrix=cm).plot(cmap="Blues", values_format="d")
+plt.title("Confusion Matrix (Holdout Test)")
+plt.tight_layout()
+plt.savefig(cm_path)
+
+classification_report_path = os.path.join(reports_dir, "classification_report.txt")
+with open(classification_report_path, "w") as f:
+    f.write("Model: ")
+    f.write(best_model_name)
+    f.write("\n\n")
+    f.write(classification_report(y_test, y_pred_test, digits=4))
+
+metrics_summary_path = os.path.join(reports_dir, "performance_summary.txt")
+with open(metrics_summary_path, "w") as f:
+    f.write(f"selected_model={best_model_name}\n")
+    f.write(f"test_accuracy={test_accuracy:.6f}\n")
+    f.write(f"test_precision={test_precision:.6f}\n")
+    f.write(f"test_recall={test_recall:.6f}\n")
+    f.write(f"test_roc_auc={test_roc_auc:.6f}\n")
+
 # Log final model to MLflow
 with mlflow.start_run(run_name="Best_Model"):
     mlflow.log_param("selected_model", best_model_name)
-    mlflow.sklearn.log_model(best_model, artifact_path="model")
-    mlflow.log_artifact("roc_curve.png")
+    mlflow.log_metric("test_accuracy", float(test_accuracy))
+    mlflow.log_metric("test_precision", float(test_precision))
+    mlflow.log_metric("test_recall", float(test_recall))
+    mlflow.log_metric("test_roc_auc", float(test_roc_auc))
+    mlflow.sklearn.log_model(best_pipeline, artifact_path="model")
+    mlflow.log_artifact(roc_curve_path)
+    mlflow.log_artifact(cm_path)
+    mlflow.log_artifact(classification_report_path)
+    mlflow.log_artifact(metrics_summary_path)
+    mlflow.log_artifact("artifacts/model.pkl")

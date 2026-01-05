@@ -1,0 +1,49 @@
+replicaCount: 1
+
+image:
+  repository: heart-disease-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+
+containerPort: 8000
+
+env:
+  modelPath: /app/artifacts/model.pkl
+  mlflowTrackingUri: file:///app/mlruns
+  extra: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 300m
+    memory: 512Mi
+
+probes:
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 20
+
+metrics:
+  enabled: true
+  path: /metrics
+  port: 8000
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+podAnnotations: {}

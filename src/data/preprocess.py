@@ -33,7 +33,7 @@ def preprocess_pipeline(
     df: pd.DataFrame, categorical_cols: list, numeric_cols: list
 ) -> pd.DataFrame:
     df = clean_data(df)
-    # df = impute_missing(df, numeric_cols)
+    df = impute_missing(df, numeric_cols)
     # df = encode_categorical(df, categorical_cols)
     logger.info("Preprocessing completed")
     return df

@@ -1,0 +1,22 @@
+1. Get the service URL:
+{{- if eq .Values.service.type "LoadBalancer" }}
+  export SERVICE_IP=$(kubectl get svc {{ include "heart-disease-api.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  echo "URL: http://$SERVICE_IP:{{ .Values.service.port }}"
+{{- else if eq .Values.service.type "NodePort" }}
+  export NODE_PORT=$(kubectl get svc {{ include "heart-disease-api.fullname" . }} -o jsonpath='{.spec.ports[0].nodePort}')
+  echo "URL: http://<node-ip>:$NODE_PORT"
+{{- else }}
+  echo "Service type is ClusterIP; use port-forwarding:"
+  echo "kubectl port-forward svc/{{ include "heart-disease-api.fullname" . }} 8000:{{ .Values.service.port }}"
+{{- end }}
+
+2. Health check:
+  curl http://<service-url>/health
+
+3. Prediction example:
+  curl -X POST http://<service-url>/predict \
+    -H "Content-Type: application/json" \
+    --data @sample_data/sample_request.json
+
+4. Metrics (Prometheus scrape):
+  curl http://<service-url>/metrics

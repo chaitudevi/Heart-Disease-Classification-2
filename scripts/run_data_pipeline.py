@@ -5,6 +5,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
 import yaml
+from src.data.download_data import download_dataset
 from src.data.load_data import load_raw_data
 from src.data.preprocess import preprocess_pipeline
 from src.data.eda import (
@@ -12,6 +13,7 @@ from src.data.eda import (
     plot_histograms,
     plot_correlation_heatmap
 )
+
 
 def main():
     with open("configs/data_config.yaml") as f:
@@ -23,6 +25,9 @@ def main():
 
     os.makedirs("data/processed", exist_ok=True)
     os.makedirs(figures_path, exist_ok=True)
+
+    if not os.path.exists(raw_path):
+        download_dataset()
 
     df_raw = load_raw_data(raw_path)
 
@@ -39,6 +44,7 @@ def main():
     plot_correlation_heatmap(df_clean, figures_path)
 
     print(" Data pipeline executed successfully")
+
 
 if __name__ == "__main__":
     main()

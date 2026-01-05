@@ -149,27 +149,27 @@ The project includes comprehensive unit tests for all major components.
 
 **Run All Tests**
 ```bash
-pytest
+./venv/bin/python -m pytest
 ```
 
 **Run Tests with HTML Report**
 ```bash
-pytest --html=reports/pytest_report.html --self-contained-html 
+./venv/bin/python -m pytest --html=reports/pytest_report.html --self-contained-html
 ```
 
 **Run Specific Test Modules**
 ```bash
 # Data tests
-pytest tests/data/
+./venv/bin/python -m pytest tests/data/
 
 # Feature tests
-pytest tests/features/
+./venv/bin/python -m pytest tests/features/
 
 # Model tests
-pytest tests/models/
+./venv/bin/python -m pytest tests/models/
 
 # Utility tests
-pytest tests/utils/
+./venv/bin/python -m pytest tests/utils/
 ```
 
 ## CI / CD pipeline
@@ -207,4 +207,80 @@ Viewing CI Results
 Navigate to the Actions tab in the GitHub repository
 Select a workflow run to view details
 Download artifacts (test reports, trained models) from the workflow summary
+
+## Containerization
+1. Ensure a trained model exists at `artifacts/model.pkl` (run `python src/models/train.py`).
+2. Build the image: `docker build -t heart-disease-api:latest .`
+3. Run locally: `docker run --rm -p 8000:8000 -v $(pwd)/artifacts:/app/artifacts heart-disease-api:latest`
+4. Test prediction: `curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" --data @sample_data/sample_request.json`
+
+## Kubernetes Deployment
+- Push the image to a registry and update `image` in `k8s/deployment.yaml`.
+- Deploy: `kubectl apply -f k8s/deployment.yaml`.
+- Access: `kubectl get svc heart-disease-api` or `minikube service heart-disease-api --url`.
+
+## Helm Chart
+- Package is under `charts/heart-disease-api`.
+- Install: `helm install heart-api charts/heart-disease-api --set image.repository=<repo> --set image.tag=<tag>`.
+- Override service type/ports: `--set service.type=NodePort --set service.port=8000`.
+- Uninstall: `helm uninstall heart-api`.
+
+## Monitoring & Observability
+- Request logging enabled via middleware in the FastAPI app.
+- Prometheus metrics exposed at `/metrics` (request count, latency, prediction confidence histogram).
+- The service manifest includes scrape annotations for Prometheus; add the service to your Prometheus scrape config.
+
+### Checking Prometheus & Grafana logs
+
+#### Docker / Docker Compose
+If you run Prometheus/Grafana as containers (for example via `docker compose`), you can tail logs with:
+
+```bash
+docker compose logs -f prometheus grafana
+```
+
+If you are not using compose, find the container names and view logs:
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Image}}" | grep -E "prometheus|grafana"
+docker logs -f <prometheus_container_name>
+docker logs -f <grafana_container_name>
+```
+
+#### Kubernetes / Helm
+Prometheus and Grafana are typically deployed by a monitoring chart (commonly `kube-prometheus-stack`) into a namespace such as `monitoring`.
+
+1) Find the namespace and pod names:
+
+```bash
+kubectl get pods -A | grep -E "prometheus|grafana"
+```
+
+2) Tail logs for a specific pod:
+
+```bash
+kubectl logs -n <namespace> <pod-name> -f
+```
+
+3) If the pod has multiple containers:
+
+```bash
+kubectl logs -n <namespace> <pod-name> -c <container-name> -f
+```
+
+4) If Prometheus/Grafana were deployed as a Deployment/StatefulSet (common with Helm), you can also do:
+
+```bash
+kubectl logs -n <namespace> deploy/<grafana-deployment-name> -f
+kubectl logs -n <namespace> statefulset/<prometheus-statefulset-name> -f
+```
+
+If logs are empty or you suspect restarts/crashes, check recent events:
+
+```bash
+kubectl describe pod -n <namespace> <pod-name>
+```
+
+## Sample Prediction Payload
+See `sample_data/sample_request.json` for a ready-to-use request body.
 

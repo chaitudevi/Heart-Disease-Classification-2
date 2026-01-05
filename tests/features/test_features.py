@@ -95,8 +95,8 @@ def test_feature_engineering_pipeline_runs_end_to_end():
     assert "target" not in processed.columns
 
     # Check one-hot encoding
-    assert any(col.startswith("cp_") for col in processed.columns)
-    assert any(col.startswith("sex_") for col in processed.columns)
+    assert any("cp_" in col for col in processed.columns)
+    assert any("sex_" in col for col in processed.columns)
 
     # Row count preserved
     assert processed.shape[0] == df.shape[0]

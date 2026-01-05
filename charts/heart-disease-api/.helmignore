@@ -1,0 +1,13 @@
+.DS_Store
+.git/
+.github/
+.gitignore
+node_modules/
+*.tgz
+.env
+venv/
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+reports/
+notebooks/

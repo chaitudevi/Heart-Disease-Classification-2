@@ -1,20 +1,20 @@
 import os
 import sys
 import joblib
+import numpy as np
 import pandas as pd
 
-from src.features.feature_pipeline import feature_engineering_pipeline
-
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.insert(0, PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-numeric_cols = ["age", "trestbps", "chol", "thalach", "oldpeak"]
-
-categorical_cols = ["sex", "cp", "fbs", "restecg", "exang", "slope", "thal"]
+from src.utils.logger import get_logger
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-MODEL_PATH = os.path.join(BASE_DIR, "artifacts", "model.pkl")
+DEFAULT_MODEL_PATH = os.path.join(BASE_DIR, "artifacts", "model.pkl")
+
+logger = get_logger(__name__)
 
 _bundle = None
 
@@ -22,28 +22,26 @@ _bundle = None
 def get_bundle():
     global _bundle
     if _bundle is None:
-        _bundle = joblib.load(MODEL_PATH)
+        model_path = os.environ.get("MODEL_PATH", DEFAULT_MODEL_PATH)
+        logger.info("Loading model artifact from %s", model_path)
+        _bundle = joblib.load(model_path)
     return _bundle
 
 
 def predict(input_json: dict):
     bundle = get_bundle()
     model = bundle["model"]
-    expected_features = bundle["feature_names"]
+    raw_feature_names = bundle.get("raw_feature_names")
 
     df = pd.DataFrame([input_json])
 
-    X_features = feature_engineering_pipeline(
-        df=df, numeric_cols=numeric_cols, categorical_cols=categorical_cols
-    )
+    if raw_feature_names is not None:
+        df = df.reindex(columns=raw_feature_names, fill_value=np.nan)
 
-    # ALIGN FEATURES (KEY FIX)
-    X_features = X_features.reindex(columns=expected_features, fill_value=0)
-
-    prediction = model.predict(X_features)
+    prediction = model.predict(df)
 
     confidence = None
     if hasattr(model, "predict_proba"):
-        confidence = float(model.predict_proba(X_features).max())
+        confidence = float(np.array(model.predict_proba(df)).max())
 
     return {"prediction": int(prediction[0]), "confidence": confidence}
