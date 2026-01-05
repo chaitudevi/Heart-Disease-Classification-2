@@ -18,6 +18,11 @@ from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_
 from sklearn.pipeline import Pipeline
 
 import yaml
+from src.features.feature_pipeline import build_feature_pipeline
+from src.models.model import build_logestic_model, build_rf_model
+from src.data.download_data import download_dataset
+from src.data.load_data import load_raw_data
+from src.data.preprocess import preprocess_pipeline
 
 
 # function to log model hyperparameters
@@ -36,12 +41,6 @@ def log_model_params(model, model_name):
         mlflow.log_param("min_samples_split", model.min_samples_split)
         mlflow.log_param("min_samples_leaf", model.min_samples_leaf)
 
-
-from src.features.feature_pipeline import build_feature_pipeline
-from src.models.model import build_logestic_model, build_rf_model
-from src.data.download_data import download_dataset
-from src.data.load_data import load_raw_data
-from src.data.preprocess import preprocess_pipeline
 
 # Ensure MLflow artifacts land in a repo-local, writable path by default.
 default_tracking_dir = os.environ.get(
@@ -162,8 +161,9 @@ for name, model in models.items():
 
         # Save CV Results as Artifact
         cv_df = pd.DataFrame(cv_results)
-        cv_results_path = f"reports/{name}_cv_results.csv"
-        cv_df.to_csv(cv_results_path, index=False)
+        reports_dir = os.path.join(PROJECT_ROOT, "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        cv_results_path = os.path.join(reports_dir, f"{name}_cv_results.csv")
         mlflow.log_artifact(cv_results_path)
 
 # Print Results (Report-Ready)
