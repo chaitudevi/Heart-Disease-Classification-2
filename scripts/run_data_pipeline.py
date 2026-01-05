@@ -14,6 +14,7 @@ from src.data.eda import (
     plot_correlation_heatmap
 )
 
+
 def main():
     with open("configs/data_config.yaml") as f:
         config = yaml.safe_load(f)
@@ -43,6 +44,7 @@ def main():
     plot_correlation_heatmap(df_clean, figures_path)
 
     print(" Data pipeline executed successfully")
+
 
 if __name__ == "__main__":
     main()

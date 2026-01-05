@@ -18,53 +18,44 @@ from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_
 from sklearn.pipeline import Pipeline
 
 import yaml
-
 from src.features.feature_pipeline import build_feature_pipeline
 from src.models.model import build_logestic_model, build_rf_model
 from src.data.download_data import download_dataset
 from src.data.load_data import load_raw_data
 from src.data.preprocess import preprocess_pipeline
 
+
+# function to log model hyperparameters
+def log_model_params(model, model_name):
+    """
+    Logs key hyperparameters for each model
+    """
+    if model_name == "Logistic Regression":
+        mlflow.log_param("C", model.C)
+        mlflow.log_param("penalty", model.penalty)
+        mlflow.log_param("solver", model.solver)
+        mlflow.log_param("max_iter", model.max_iter)
+    elif model_name == "Random Forest":
+        mlflow.log_param("n_estimators", model.n_estimators)
+        mlflow.log_param("max_depth", model.max_depth)
+        mlflow.log_param("min_samples_split", model.min_samples_split)
+        mlflow.log_param("min_samples_leaf", model.min_samples_leaf)
+
+
 # Ensure MLflow artifacts land in a repo-local, writable path by default.
-# default_tracking_dir = os.environ.get(
-#     "MLFLOW_TRACKING_DIR", os.path.join(PROJECT_ROOT, "mlruns")
-# )
-# tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", f"file://{default_tracking_dir}")
+default_tracking_dir = os.environ.get(
+    "MLFLOW_TRACKING_DIR", os.path.join(PROJECT_ROOT, "mlruns")
+)
+tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", f"file://{default_tracking_dir}")
 
-# if tracking_uri.startswith("file:"):
-#     tracking_path = tracking_uri.replace("file://", "", 1)
-#     os.makedirs(tracking_path, exist_ok=True)
+if tracking_uri.startswith("file:"):
+    tracking_path = tracking_uri.replace("file://", "", 1)
+    os.makedirs(tracking_path, exist_ok=True)
 
-# mlflow.set_tracking_uri(tracking_uri)
-# mlflow.set_experiment(
-#     "Heart-Disease-Classification-2"
-# )
-
-# MLRUNS_DIR = Path(PROJECT_ROOT) / "mlruns"
-# MLRUNS_DIR.mkdir(parents=True, exist_ok=True)
-
-# tracking_uri = MLRUNS_DIR.as_uri()  # <-- CRITICAL FIX
-# mlflow.set_tracking_uri(tracking_uri)
-
-from pathlib import Path
-
-# ----- MLflow tracking (Windows-safe) -----
-MLRUNS_DIR = Path(PROJECT_ROOT) / "mlruns"
-MLRUNS_DIR.mkdir(parents=True, exist_ok=True)
-
-tracking_uri = MLRUNS_DIR.as_uri()  # <-- CRITICAL FIX
 mlflow.set_tracking_uri(tracking_uri)
-
-EXPERIMENT_NAME = "Heart-Disease-Classification-Local"
-
-experiment = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
-if experiment is None:
-    mlflow.create_experiment(
-        name=EXPERIMENT_NAME,
-        artifact_location=tracking_uri
-    )
-
-mlflow.set_experiment(EXPERIMENT_NAME)
+mlflow.set_experiment(
+    "Heart-Disease-Classification-2"
+)
 
 # Load data (generate if missing)
 processed_csv = os.path.join(PROJECT_ROOT, "data", "processed", "heart_disease_clean.csv")
@@ -133,9 +124,10 @@ results = {}
 
 for name, model in models.items():
     with mlflow.start_run(run_name=name):
-
-        # Log model type
+        # Parameters
         mlflow.log_param("model_type", name)
+        mlflow.log_param("cv_folds", cv.n_splits)
+        log_model_params(model, name)
 
         feature_pipeline = build_feature_pipeline(
             numeric_cols=numeric_cols,
@@ -148,22 +140,31 @@ for name, model in models.items():
             ]
         )
 
+        # Cross Validation
         cv_results = cross_validate(
             model_pipeline,
             X_train,
             y_train,
             cv=cv,
             scoring=scoring,
+            return_train_score=False
         )
 
-        # Log metrics
+        # Metrics
         for metric in scoring:
             mean_value = np.mean(cv_results[f"test_{metric}"])
-            mlflow.log_metric(metric, mean_value)
+            mlflow.log_metric(f"cv_{metric}", mean_value)
 
         results[name] = {
             metric: np.mean(cv_results[f"test_{metric}"]) for metric in scoring
         }
+
+        # Save CV Results as Artifact
+        cv_df = pd.DataFrame(cv_results)
+        reports_dir = os.path.join(PROJECT_ROOT, "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        cv_results_path = os.path.join(reports_dir, f"{name}_cv_results.csv")
+        mlflow.log_artifact(cv_results_path)
 
 # Print Results (Report-Ready)
 for model_name, metrics in results.items():
