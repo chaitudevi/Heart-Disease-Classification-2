@@ -141,12 +141,11 @@ python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 # 2. Data pipeline
-python src/data/download_data.py
-python src/data/load_data.py
+python -m src.data.download_data
+python -m src.data.load_data
 
 # 3. Train model (generates artifacts/model.pkl)
-python src/models/train.py
-
+python -m src.models.train
 # 4. Run API locally
 uvicorn src.api.app:app --host 0.0.0.0 --port 8000
 
@@ -155,7 +154,7 @@ curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
   -d @sample_data/sample_request.json
 
 # 6. Run tests
-pytest tests/ -v
+./venv/bin/python -m pytest tests -v
 
 # 7. Build container
 docker build -t heart-disease-api .
