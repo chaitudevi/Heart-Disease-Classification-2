@@ -164,6 +164,7 @@ for name, model in models.items():
         reports_dir = os.path.join(PROJECT_ROOT, "reports")
         os.makedirs(reports_dir, exist_ok=True)
         cv_results_path = os.path.join(reports_dir, f"{name}_cv_results.csv")
+        cv_df.to_csv(cv_results_path, index=False)
         mlflow.log_artifact(cv_results_path)
 
 # Print Results (Report-Ready)
