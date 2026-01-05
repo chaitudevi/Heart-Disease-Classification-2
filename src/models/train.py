@@ -19,6 +19,7 @@ from sklearn.pipeline import Pipeline
 
 import yaml
 
+
 # function to log model hyperparameters
 def log_model_params(model, model_name):
     """
@@ -34,6 +35,7 @@ def log_model_params(model, model_name):
         mlflow.log_param("max_depth", model.max_depth)
         mlflow.log_param("min_samples_split", model.min_samples_split)
         mlflow.log_param("min_samples_leaf", model.min_samples_leaf)
+
 
 from src.features.feature_pipeline import build_feature_pipeline
 from src.models.model import build_logestic_model, build_rf_model
@@ -139,7 +141,7 @@ for name, model in models.items():
             ]
         )
 
-        # Cross Validation 
+        # Cross Validation
         cv_results = cross_validate(
             model_pipeline,
             X_train,
@@ -158,7 +160,7 @@ for name, model in models.items():
             metric: np.mean(cv_results[f"test_{metric}"]) for metric in scoring
         }
 
-        # Save CV Results as Artifact 
+        # Save CV Results as Artifact
         cv_df = pd.DataFrame(cv_results)
         cv_results_path = f"reports/{name}_cv_results.csv"
         cv_df.to_csv(cv_results_path, index=False)
